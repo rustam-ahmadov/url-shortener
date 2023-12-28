@@ -21,10 +21,8 @@ type HttpServer struct {
 }
 
 func MustLoad() *Config {
-	// configPath := os.Getenv("CONFIG_PATH")
 	configPath, _ := os.Getwd()
-
-	configPath = filepath.Join(configPath, "../../config/local.yml")
+	configPath = filepath.Join(configPath, "../../config/local.yml") //has to be dynamic from env var
 	if configPath == "" {
 		log.Fatal("CONFIG_PATH is not set")
 	}
