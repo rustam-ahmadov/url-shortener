@@ -1,19 +1,13 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"log/slog"
 	"os"
-	"time"
 	"url-shortener/internal/config"
-
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"url-shortener/internal/storage/mongo_storage"
 )
-
-
 
 const (
 	envLocal = "local"
@@ -31,24 +25,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	clientOptions := options.Client().ApplyURI(cfg.Storage_Path)
-	client, err := mongo.Connect(context.Background(), clientOptions)
-	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(1)
-	}
-
-	defer client.Disconnect(context.Background())
-
-	err = client.Ping(context.Background(), nil)
-	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(1)
-	}
-
-	collection  := client.Database("url-shortener").Collection("logs")
-	le := newLogEntry("starting url-shortener", 2)
-	collection.InsertOne(context.TODO(), le)
+	storage := mongo_storage.NewStorage(cfg.Storage_Path)
+	storage.Log("url-shortener has been started",slog.LevelInfo)
 
 	log.Debug("debug messages are enabled")
 }
