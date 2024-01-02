@@ -25,7 +25,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	storage := mongo_storage.NewStorage(cfg.Storage_Path)
+	storage := mongo_storage.NewStorage(cfg.Storage_Path, cfg.Storage_Name)
 	storage.Log("url-shortener has been started",slog.LevelInfo)
 
 	log.Debug("debug messages are enabled")
