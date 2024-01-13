@@ -3,5 +3,5 @@ storage_path: "mongodb://localhost:27017"
 storage_name: "url-shortener"
 http_server:
   address: "localhost:8082"
-  timeout: 4s  
+  timeout: 1000s  
   idle_timeout: 60s

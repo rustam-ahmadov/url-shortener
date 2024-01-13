@@ -13,6 +13,7 @@ type Config struct {
 	Env          string `yml: env-required: "true"`
 	Storage_Path string `yml: env-required: "true"`
 	Storage_Name string `yml: env-required: "true"`
+	HttpServer   `yaml:"http_server"`
 }
 
 type HttpServer struct {
