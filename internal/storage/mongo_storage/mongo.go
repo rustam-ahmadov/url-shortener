@@ -47,16 +47,16 @@ func NewStorage(storagePath string, storageName string) (storage.Storage, error)
 	return mongo, nil
 }
 
-func (sg *MongoStorage) createCollectionLog() error {
+func (ms *MongoStorage) createCollectionLog() error {
 	command := bson.D{{Key: "create", Value: "logs"}}
 	var res bson.D
-	return sg.db.RunCommand(context.TODO(), command).Decode(&res)
+	return ms.db.RunCommand(context.TODO(), command).Decode(&res)
 }
 
-func (sg *MongoStorage) createCollectionUrl() error {
+func (ms *MongoStorage) createCollectionUrl() error {
 	command := bson.D{{Key: "create", Value: "urls"}}
 	var res bson.D
-	err := sg.db.RunCommand(context.TODO(), command).Decode(&res)
+	err := ms.db.RunCommand(context.TODO(), command).Decode(&res)
 	if err != nil {
 		return err
 	}
@@ -65,21 +65,30 @@ func (sg *MongoStorage) createCollectionUrl() error {
 		Keys:    bson.M{"alias": 1},
 		Options: options.Index().SetUnique(true),
 	}
-	sg.db.Collection("urls").Indexes().CreateOne(context.Background(), index)
+	ms.db.Collection("urls").Indexes().CreateOne(context.Background(), index)
 	return err
 }
 
-func (sg *MongoStorage) Log(msg string, lvl slog.Level) {
-	l := LogEntry{
-		Time: time.Now().Format(time.RFC3339),
-		Lvl:  logLevelFrom(lvl),
-		Msg:  msg,
-	}
-	sg.db.Collection("logs").InsertOne(context.Background(), l)
+type LogEntry struct {
+	Time string `json:"time"`
+	Lvl  string `json:"lvl"`
+	Msg  string `json:"msg"`
 }
 
-func (sg *MongoStorage) GetURL(alias string) (string, error) {
-	coll := sg.db.Collection("urls")
+func (ms *MongoStorage) Log(msg string, lvl slog.Level) {
+	l := LogEntry{
+		Time: time.Now().Format(time.RFC3339),
+		Lvl:  LogLevelFrom(lvl),
+		Msg:  msg,
+	}
+	_, err := ms.db.Collection("logs").InsertOne(context.Background(), l)
+	if err != nil {
+		fmt.Errorf("Err: ujas log")
+	}
+}
+
+func (ms *MongoStorage) GetURL(alias string) (string, error) {
+	coll := ms.db.Collection("urls")
 	filter := bson.D{{Key: "alias", Value: alias}}
 	var urlEntry UrlEntry
 	err := coll.FindOne(context.TODO(), filter).Decode(&urlEntry)
@@ -89,19 +98,34 @@ func (sg *MongoStorage) GetURL(alias string) (string, error) {
 	return urlEntry.Url, nil
 }
 
-type LogEntry struct {
-	Time string `json:"time"`
-	Lvl  string `json:"lvl"`
-	Msg  string `json:"msg"`
-}
-
-func (sg *MongoStorage) SaveURL(urlToSave, alias string) error {
+func (ms *MongoStorage) SaveURL(urlToSave, alias string) error {
 	u := UrlEntry{
 		Url:   urlToSave,
 		Alias: alias,
 	}
-	_, err := sg.db.Collection("urls").InsertOne(context.Background(), u)
+	_, err := ms.db.Collection("urls").InsertOne(context.Background(), u)
 	return err
+}
+
+func (ms *MongoStorage) AliasExist(alias string) bool {
+	coll := ms.db.Collection("urls")
+	filter := bson.D{{Key: "alias", Value: alias}}
+	err := coll.FindOne(context.Background(), filter)
+	if err != nil {
+		return false
+	}
+	return true
+}
+
+func (ms *MongoStorage) GetAlias(url string) string {
+	coll := ms.db.Collection("urls")
+	filter := bson.D{{Key: "url", Value: url}}
+	var urlEntry UrlEntry
+	err := coll.FindOne(context.Background(), filter).Decode(urlEntry)
+	if err != nil {
+		return ""
+	}
+	return urlEntry.Alias
 }
 
 type UrlEntry struct {
@@ -109,7 +133,7 @@ type UrlEntry struct {
 	Alias string `json:"alias"`
 }
 
-func logLevelFrom(lvl slog.Level) string {
+func LogLevelFrom(lvl slog.Level) string {
 	switch lvl {
 	case slog.LevelDebug:
 		return "debug"

@@ -1,21 +1,18 @@
 package logger
 
 import (
+	"github.com/go-chi/chi/middleware"
 	"log/slog"
 	"net/http"
 	"time"
-	"url-shortener/internal/storage"
-
-	"github.com/go-chi/chi/middleware"
 )
 
-func New(storage storage.Storage, log *slog.Logger) func(next http.Handler) http.Handler {
+func New(log *slog.Logger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		var sAttr slog.Attr = slog.String("component", "middleware/logger")
 		var log *slog.Logger = log.With(sAttr)
 
 		log.Info("logger middleware enabled")
-		storage.Log("logger middleware enabled", slog.LevelInfo)
 
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			var entry *slog.Logger = log.With(

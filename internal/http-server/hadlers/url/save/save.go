@@ -13,7 +13,7 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-const aliasLength = 6
+const ALIAS_LENGTH = 6
 
 type Request struct {
 	URL   string `json:"url" validate: "required,url"`
@@ -40,7 +40,6 @@ func New(log *slog.Logger, storage storage.Storage) http.HandlerFunc {
 
 		if err != nil {
 			log.Error("failed to decode request body", sl.Err(err))
-			storage.Log("failed to decode request body", slog.LevelError)
 			render.JSON(w, r, resp.Error("failed to decode request"))
 			return
 		}
@@ -50,32 +49,22 @@ func New(log *slog.Logger, storage storage.Storage) http.HandlerFunc {
 			validateErr := err.(validator.ValidationErrors)
 
 			log.Error("invalid request", sl.Err(err))
-			storage.Log("invalid request", slog.LevelError)
 
 			render.JSON(w, r, resp.ValidationError(validateErr))
 			return
 		}
 		alias := req.Alias
-		if alias == "" {
-			alias = random.NewRandomString(aliasLength)
+		for alias == "" || storage.AliasExist(alias) {
+			alias = random.NewRandomString(ALIAS_LENGTH)
 		}
+
 		err = storage.SaveURL(req.URL, alias)
 		if err != nil {
-			existedUrl := slog.String("url", req.URL)
-			errMsg := "url already exists" + existedUrl.String()
-
-			log.Info("url already exists", existedUrl)
-			storage.Log(errMsg, slog.LevelInfo)
-
 			render.JSON(w, r, resp.Error("alias already exists"))
 			return
 		}
-		log.Info("url added")
-		storage.Log("url added", slog.LevelInfo)
-
 		responseOK(w, r, alias)
 	}
-
 }
 
 func responseOK(w http.ResponseWriter, r *http.Request, alias string) {
