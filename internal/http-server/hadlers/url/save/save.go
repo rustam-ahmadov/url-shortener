@@ -16,8 +16,7 @@ import (
 const ALIAS_LENGTH = 6
 
 type Request struct {
-	URL   string `json:"url" validate: "required,url"`
-	Alias string `json:"alias,omitempty"`
+	URL string `json:"url" validate: "required,url"`
 }
 
 type Response struct {
@@ -47,20 +46,22 @@ func New(log *slog.Logger, storage storage.Storage) http.HandlerFunc {
 
 		if err := validator.New().Struct(req); err != nil {
 			validateErr := err.(validator.ValidationErrors)
-
 			log.Error("invalid request", sl.Err(err))
-
 			render.JSON(w, r, resp.ValidationError(validateErr))
 			return
 		}
-		alias := req.Alias
-		for alias == "" || storage.AliasExist(alias) {
+		alias := random.NewRandomString(ALIAS_LENGTH)
+		for storage.AliasExist(alias) {
 			alias = random.NewRandomString(ALIAS_LENGTH)
 		}
 
 		err = storage.SaveURL(req.URL, alias)
 		if err != nil {
-			render.JSON(w, r, resp.Error("alias already exists"))
+			alias = storage.GetAlias(req.URL)
+		}
+		if alias == "" {
+			log.Error("internal server err in save")
+			responseErr(w, r, "internal server err")
 			return
 		}
 		responseOK(w, r, alias)
@@ -71,5 +72,13 @@ func responseOK(w http.ResponseWriter, r *http.Request, alias string) {
 	render.JSON(w, r, Response{
 		Response: resp.OK(),
 		Alias:    alias,
+	})
+}
+
+func responseErr(w http.ResponseWriter, r *http.Request, msg string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusInternalServerError)
+	render.JSON(w, r, Response{
+		Response: resp.Error(msg),
 	})
 }

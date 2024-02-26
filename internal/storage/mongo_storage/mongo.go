@@ -60,12 +60,21 @@ func (ms *MongoStorage) createCollectionUrl() error {
 	if err != nil {
 		return err
 	}
-
-	index := mongo.IndexModel{
-		Keys:    bson.M{"alias": 1},
-		Options: options.Index().SetUnique(true),
+	indexes := []mongo.IndexModel{
+		{
+			Keys: bson.M{
+				"alias": 1,
+			},
+			Options: options.Index().SetName("index_alias").SetUnique(false),
+		},
+		{
+			Keys: bson.M{
+				"url": 1,
+			},
+			Options: options.Index().SetName("index_url").SetUnique(true),
+		},
 	}
-	ms.db.Collection("urls").Indexes().CreateOne(context.Background(), index)
+	ms.db.Collection("urls").Indexes().CreateMany(context.Background(), indexes)
 	return err
 }
 

@@ -12,6 +12,7 @@ import (
 	"url-shortener/internal/http-server/hadlers/url/redirect"
 	"url-shortener/internal/http-server/hadlers/url/save"
 	"url-shortener/internal/http-server/middleware/logger"
+	"url-shortener/internal/http-server/middleware/verify"
 	"url-shortener/internal/storage/mongo_storage"
 
 	"github.com/go-chi/chi"
@@ -41,14 +42,21 @@ func main() {
 	}
 
 	router := chi.NewRouter()
-	router.Use(middleware.RequestID)
-	router.Use(middleware.Logger)
-	router.Use(logger.New(log))
-	router.Use(middleware.Recoverer)
-	router.Use(middleware.URLFormat)
 
-	router.Post("/url", save.New(log, storage))
-	router.Get("/*", redirect.New(log, storage))
+	router.Group(func(r chi.Router) {
+		router.Use(verify.JwtMiddleware)
+
+		router.Use(middleware.RequestID)
+		router.Use(middleware.Logger)
+		router.Use(logger.New(log))
+		router.Use(middleware.Recoverer)
+		router.Use(middleware.URLFormat)
+
+		router.Post("/url", save.New(log, storage))
+	})
+	router.Group(func(r chi.Router) {
+		router.Get("/*", redirect.New(log, storage))
+	})
 
 	srv := &http.Server{
 		Addr:         cfg.Address,
