@@ -1,7 +1,9 @@
 env: "local" # local, dev, prod
-storage_path: "mongodb://localhost:27017"
 storage_name: "url-shortener"
+storage_path: "mongodb://localhost:27017"
 http_server:
   address: "localhost:8082"
-  timeout: 1000s #time to receive request and respond to it
+  user : "myuser"
+  password: "mypassword"
   idle_timeout: 60s
+  timeout: 1000s #time to receive request and respond to it

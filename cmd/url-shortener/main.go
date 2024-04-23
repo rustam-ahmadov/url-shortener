@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/go-chi/chi/v5/middleware"
 	"io"
 	"log/slog"
 	"net/http"
@@ -12,11 +13,9 @@ import (
 	"url-shortener/internal/http-server/hadlers/url/redirect"
 	"url-shortener/internal/http-server/hadlers/url/save"
 	"url-shortener/internal/http-server/middleware/logger"
-	"url-shortener/internal/http-server/middleware/verify"
 	"url-shortener/internal/storage/mongo_storage"
 
 	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
 )
 
 const (
@@ -28,7 +27,7 @@ const (
 func main() {
 	cfg := config.MustLoad()
 
-	storage, err := mongo_storage.NewStorage(cfg.Storage_Path, cfg.Storage_Name)
+	storage, err := mongo_storage.NewStorage(cfg.StoragePath, cfg.StorageName)
 	if err != nil {
 		fmt.Println("failed to setup storage")
 		os.Exit(1)
@@ -43,20 +42,36 @@ func main() {
 
 	router := chi.NewRouter()
 
-	router.Group(func(r chi.Router) {
-		router.Use(verify.JwtMiddleware)
+	//in case when i use specific middlewares for some endpoints
+	//router.Group(func(r chi.Router) {
+	//	router.Use(verify.JwtMiddleware)
+	//
+	//	router.Use(middleware.RequestID)
+	//	router.Use(middleware.Logger)
+	//	router.Use(logger.New(log))
+	//	router.Use(middleware.Recoverer)
+	//	router.Use(middleware.URLFormat)
+	//
+	//	router.Post("/url", save.New(log, storage))
+	//})
+	//router.Group(func(r chi.Router) {
+	//	router.Get("/*", redirect.New(log, storage))
+	//})
 
-		router.Use(middleware.RequestID)
-		router.Use(middleware.Logger)
-		router.Use(logger.New(log))
-		router.Use(middleware.Recoverer)
-		router.Use(middleware.URLFormat)
+	router.Use(middleware.RequestID)
+	router.Use(middleware.Logger)
+	router.Use(logger.New(log))
+	router.Use(middleware.Recoverer)
+	router.Use(middleware.URLFormat)
 
-		router.Post("/url", save.New(log, storage))
+	router.Route("/url", func(r chi.Router) {
+		r.Use(middleware.BasicAuth("url-shortener", map[string]string{
+			cfg.HttpServer.User: cfg.HttpServer.Password,
+		}))
+		//c563yA
+		r.Post("/save", save.New(log, storage))
 	})
-	router.Group(func(r chi.Router) {
-		router.Get("/*", redirect.New(log, storage))
-	})
+	router.Get("/*", redirect.New(log, storage))
 
 	srv := &http.Server{
 		Addr:         cfg.Address,
@@ -65,6 +80,7 @@ func main() {
 		WriteTimeout: cfg.HttpServer.Timeout,
 		IdleTimeout:  cfg.IdleTimeout,
 	}
+	log.Info("serv starts..")
 	if err := srv.ListenAndServe(); err != nil {
 		log.Error("failed to start server")
 	}
