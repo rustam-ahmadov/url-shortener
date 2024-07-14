@@ -1,0 +1,25 @@
+version: '3.8'
+services:
+  url-shortener:
+    build: .
+    image: url-shortener-i
+    container_name: url-shortener_c
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mongodb
+    environment:
+      - APP_ENV=dev
+  mongodb:
+    image: mongo:latest
+    container_name: mongo_c
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+volumes:
+  mongo-data:
+    driver: local

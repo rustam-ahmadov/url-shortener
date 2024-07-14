@@ -1,6 +1,6 @@
-env: "local" # local, dev, prod
+env: "dev" # local, dev, prod
 storage_name: "url-shortener"
-storage_path: "mongodb://127.0.0.1:27017"
+storage_path: "mongodb://admin:password@mongo_c:27017"
 http_server:
   address: "0.0.0.0:8080"
   user : "myuser"

@@ -23,13 +23,16 @@ func New(log *slog.Logger, storage storage.Storage) http.HandlerFunc {
 		alias := chi.URLParam(r, "*")
 		if alias == "" {
 			log.Error("alias is empty")
+			render.Status(r, http.StatusBadRequest)
 			render.JSON(w, r, response.Error("alias is empty"))
+			return
 		}
 
 		url, err := storage.GetURL(alias)
 		if err != nil {
 			errStr := fmt.Sprintf("url has not been found by alias: %s", alias)
 			log.Error(errStr)
+			render.Status(r, http.StatusBadRequest)
 			render.JSON(w, r, response.Error("not found"))
 			return
 		}

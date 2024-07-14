@@ -26,7 +26,7 @@ const (
 
 func main() {
 	cfg := config.MustLoad()
-
+	slog.Info(cfg.StoragePath)
 	storage, err := mongo_storage.NewStorage(cfg.StoragePath, cfg.StorageName)
 	if err != nil {
 		fmt.Println("failed to setup storage")

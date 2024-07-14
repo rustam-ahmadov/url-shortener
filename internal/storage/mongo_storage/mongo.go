@@ -129,7 +129,7 @@ func (ms *MongoStorage) AliasExist(alias string) bool {
 func (ms *MongoStorage) GetAlias(url string) string {
 	coll := ms.db.Collection("urls")
 	filter := bson.D{{Key: "url", Value: url}}
-	var urlEntry UrlEntry
+	urlEntry := &UrlEntry{}
 	err := coll.FindOne(context.Background(), filter).Decode(urlEntry)
 	if err != nil {
 		return ""
